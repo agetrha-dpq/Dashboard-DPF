@@ -625,6 +625,160 @@
             background-color: rgba(0,0,0,0.02);
         }
         
+/* ===== MODAL DE LOGIN ===== */
+.login-modal {
+    display: flex !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-modal.hidden {
+    display: none !important;
+}
+
+.login-modal-content {
+    background: white;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    animation: modalSlideIn 0.4s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-modal-header {
+    background: var(--primary);
+    color: white;
+    padding: 25px;
+    text-align: center;
+}
+
+.login-modal-header h2 {
+    margin: 0;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.login-modal-header img {
+    height: 40px;
+    border-radius: 5px;
+}
+
+.login-modal-body {
+    padding: 30px;
+}
+
+.login-form-group {
+    margin-bottom: 25px;
+}
+
+.login-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.login-form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+.login-form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26, 78, 142, 0.2);
+}
+
+.login-error-message {
+    color: var(--danger);
+    background-color: rgba(220, 53, 69, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    font-size: 14px;
+    display: none;
+    text-align: center;
+}
+
+.login-success-message {
+    color: var(--success);
+    background-color: rgba(40, 167, 69, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    font-size: 14px;
+    display: none;
+    text-align: center;
+}
+
+.login-modal-footer {
+    padding: 0 30px 30px;
+    text-align: center;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(26, 78, 142, 0.3);
+}
+
+.btn-login:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.login-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--primary);
+}
+
         /* ===== STATUS BADGES ===== */
         .status {
             padding: 5px 10px;
@@ -1033,10 +1187,64 @@
                 width: 100%;
             }
         }
+
+/* ===== OCULTAR CONTEÚDO DURANTE LOGIN ===== */
+body.login-active .sidebar,
+body.login-active .main-content {
+    display: none !important;
+}
+
     </style>
     
 </head>
 <body>
+
+<!-- ===== MODAL DE LOGIN ===== -->
+<div id="login-modal" class="login-modal">
+    <div class="login-modal-content">
+        <div class="login-modal-header">
+            <img src="https://i.postimg.cc/DyKZTbYq/Logotipo.jpg" alt="AGETRHA Logo">
+            <h2><i class="fas fa-lock"></i> Acesso Restrito</h2>
+        </div>
+        
+        <div class="login-modal-body">
+            <div style="text-align: center; margin-bottom: 25px;">
+                <h3 style="color: var(--primary); margin-bottom: 8px;">Departamento de Planejamento e Finanças</h3>
+                <p style="color: var(--gray); font-size: 14px;">AGETRHA - Gestão Financeira</p>
+            </div>
+            
+            <form id="login-form">
+                <div class="login-form-group">
+                    <label for="login-password"><i class="fas fa-key"></i> Senha de Acesso</label>
+                    <input type="password" 
+                           id="login-password" 
+                           class="login-form-control" 
+                           placeholder="Digite a senha de acesso" 
+                           autocomplete="off"
+                           required>
+                </div>
+                
+                <div id="login-error-message" class="login-error-message">
+                    <i class="fas fa-exclamation-circle"></i> <span id="login-error-text"></span>
+                </div>
+                
+                <div id="login-success-message" class="login-success-message">
+                    <i class="fas fa-check-circle"></i> Autenticação bem-sucedida!
+                </div>
+            </form>
+        </div>
+        
+        <div class="login-modal-footer">
+            <button id="btn-login-submit" class="btn-login" type="button">
+                <i class="fas fa-sign-in-alt"></i> Entrar no Sistema
+            </button>
+            <p style="margin-top: 15px; font-size: 12px; color: var(--gray);">
+                <i class="fas fa-info-circle"></i> Acesso restrito aos membros do DPF
+            </p>
+        </div>
+    </div>
+</div>
+
     <!-- ===== SIDEBAR ===== -->
     <div class="sidebar">
         <div class="sidebar-header">
@@ -2046,12 +2254,14 @@
 
     <script>
         // ===== CONFIGURAÇÃO DO BACKEND =====
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOLjmONbzXFOIThmrWoJ83p973hd2myz8AAo_N6STs32P7FYJUQ_lPnNDUwANHFtE6zA/exec';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxN3yGz_oTMzxB-6_PvQtsZQmYftTltqWwWg9lEx_XHacpUnZx_tKzEEVrfrTzsKRlWwQ/exec';
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw4NklQ1lF4Uq8yqPm35qeJ7kjE1c1E7YLVfMEa-h3WjsGOT0Gi5KtHz8PoDy1-Mo4/exec';
         const MEMBROS_GAS_URL = 'https://script.google.com/macros/s/AKfycbw4NklQ1lF4Uq8yqPm35qeJ7kjE1c1E7YLVfMEa-h3WjsGOT0Gi5KtHz8PoDy1-Mo4/exec';
-
+	const AUTH_GAS_URL = 'https://script.google.com/macros/s/AKfycbzhCq6YKeV7li8sJHHcLTeDbaGpAJsFjEoAS_yE3aOuqZWW6p-T2emWo_Rdgkez6AsF/exec';
+	
         let carregandoDados = false;
         let listaMembrosCompleta = [];
+	let isAuthenticated = false;
 
 
         // ===== DADOS INICIAIS =====
@@ -2129,7 +2339,11 @@
         // Executar teste após 5 segundos
         setTimeout(testarNovoGAS, 5000);
 
+
         // ===== FUNÇÕES GERAIS =====
+
+
+
         function formatarValor(valor) {
             return new Intl.NumberFormat('pt-AO', { style: 'decimal', minimumFractionDigits: 2 }).format(valor) + ' Kz';
         }
@@ -2188,6 +2402,248 @@
             // Tenta o parser nativo como fallback
             return new Date(dataString);
         }
+
+// ===== FUNÇÕES DE AUTENTICAÇÃO =====
+function mostrarModalLogin() {
+    console.log('🔒 Mostrando modal de login...');
+    const loginModal = document.getElementById('login-modal');
+    if (loginModal) {
+        loginModal.classList.remove('hidden');
+        document.body.classList.add('login-active');
+        
+        // Focar no campo de senha
+        setTimeout(() => {
+            document.getElementById('login-password').focus();
+        }, 300);
+    }
+}
+
+function esconderModalLogin() {
+    console.log('✅ Escondendo modal de login...');
+    const loginModal = document.getElementById('login-modal');
+    if (loginModal) {
+        loginModal.classList.add('hidden');
+        document.body.classList.remove('login-active');
+    }
+}
+
+async function validarSenha(senha) {
+    try {
+        mostrarLoading('Validando senha...');
+        
+        // Enviar como JSON (não como URLSearchParams)
+        const dados = {
+            action: 'validateDashboardPassword',
+            password: senha,
+            department: 'DPF'
+        };
+        
+        const resposta = await fetch(AUTH_GAS_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dados)
+        });
+        
+        const resultado = await resposta.json();
+        console.log('🔑 Resposta da autenticação:', resultado);
+        
+        return resultado;
+        
+    } catch (error) {
+        console.error('❌ Erro na autenticação:', error);
+        return {
+            success: false,
+            valid: false,
+            message: 'Erro de conexão com o servidor'
+        };
+    } finally {
+        esconderLoading();
+    }
+}
+function mostrarErroLogin(mensagem) {
+    const errorElement = document.getElementById('login-error-message');
+    const errorText = document.getElementById('login-error-text');
+    const successElement = document.getElementById('login-success-message');
+    
+    if (errorElement && errorText) {
+        errorText.textContent = mensagem;
+        errorElement.style.display = 'block';
+    }
+    
+    if (successElement) {
+        successElement.style.display = 'none';
+    }
+}
+
+function mostrarSucessoLogin() {
+    const errorElement = document.getElementById('login-error-message');
+    const successElement = document.getElementById('login-success-message');
+    
+    if (errorElement) {
+        errorElement.style.display = 'none';
+    }
+    
+    if (successElement) {
+        successElement.style.display = 'block';
+    }
+}
+
+function resetarMensagensLogin() {
+    const errorElement = document.getElementById('login-error-message');
+    const successElement = document.getElementById('login-success-message');
+    
+    if (errorElement) {
+        errorElement.style.display = 'none';
+    }
+    
+    if (successElement) {
+        successElement.style.display = 'none';
+    }
+}
+
+async function fazerLogin() {
+    const senha = document.getElementById('login-password').value.trim();
+    const btnLogin = document.getElementById('btn-login-submit');
+    
+    if (!senha) {
+        mostrarErroLogin('Por favor, insira a senha de acesso');
+        return;
+    }
+    
+    // Desabilitar botão durante a validação
+    if (btnLogin) {
+        btnLogin.disabled = true;
+        btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validando...';
+    }
+    
+    resetarMensagensLogin();
+    
+    try {
+        const resultado = await validarSenha(senha);
+        
+        if (resultado.success && resultado.valid) {
+            // Login bem-sucedido
+            mostrarSucessoLogin();
+            isAuthenticated = true;
+            
+            // Salvar estado de autenticação na sessão
+            sessionStorage.setItem('dpf_authenticated', 'true');
+            sessionStorage.setItem('dpf_auth_timestamp', Date.now().toString());
+            
+            // Mostrar mensagem de boas-vindas
+            mostrarToast('Bem-vindo(a)!', 'Acesso concedido ao sistema de gestão financeira.', 'sucesso');
+            
+            // Aguardar um pouco para mostrar a mensagem de sucesso
+            setTimeout(() => {
+                esconderModalLogin();
+                
+                // Restaurar botão
+                if (btnLogin) {
+                    btnLogin.disabled = false;
+                    btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Sistema';
+                }
+                
+                // Inicializar sistema normalmente
+                inicializarSistemaCompleto();
+                
+            }, 1500);
+            
+        } else {
+            // Login falhou
+            mostrarErroLogin(resultado.message || 'Senha incorreta!');
+            
+            // Limpar campo de senha
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-password').focus();
+            
+            // Restaurar botão
+            if (btnLogin) {
+                btnLogin.disabled = false;
+                btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Sistema';
+            }
+        }
+        
+    } catch (error) {
+        console.error('Erro no processo de login:', error);
+        mostrarErroLogin('Erro durante a autenticação');
+        
+        // Restaurar botão
+        if (btnLogin) {
+            btnLogin.disabled = false;
+            btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Sistema';
+        }
+    }
+}
+
+function configurarEventosLogin() {
+    const btnLogin = document.getElementById('btn-login-submit');
+    const inputSenha = document.getElementById('login-password');
+    const loginForm = document.getElementById('login-form');
+    
+    if (btnLogin) {
+        btnLogin.addEventListener('click', fazerLogin);
+    }
+    
+    if (inputSenha) {
+        inputSenha.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                fazerLogin();
+            }
+        });
+    }
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            fazerLogin();
+        });
+    }
+}
+
+function verificarSessaoAtiva() {
+    const autenticado = sessionStorage.getItem('dpf_authenticated');
+    const timestamp = sessionStorage.getItem('dpf_auth_timestamp');
+    
+    if (autenticado === 'true' && timestamp) {
+        const agora = Date.now();
+        const tempoSessao = agora - parseInt(timestamp);
+        const horas = tempoSessao / (1000 * 60 * 60);
+        
+        // Sessão válida por 8 horas
+        if (horas < 8) {
+            console.log('✅ Sessão ativa encontrada');
+            return true;
+        } else {
+            // Sessão expirada
+            sessionStorage.removeItem('dpf_authenticated');
+            sessionStorage.removeItem('dpf_auth_timestamp');
+        }
+    }
+    
+    return false;
+}
+
+function inicializarSistemaCompleto() {
+    console.log('🚀 Inicializando sistema completo...');
+    
+    // Inicializar notificações
+    inicializarSistemaNotificacoes();
+    
+    // Configurar eventos
+    inicializarEventListeners();
+    
+    // Carregar dados do dashboard
+    setTimeout(() => {
+        carregarDadosDashboard();
+    }, 500);
+    
+    // Pré-carregar membros
+    setTimeout(() => {
+        carregarMembrosParaFacturas();
+    }, 1000);
+}
 
         // ===== SISTEMA DE NOTIFICAÇÕES =====
         function inicializarSistemaNotificacoes() {
@@ -2715,6 +3171,21 @@
                 return await resposta.json();
             } catch (error) {
                 console.error(`Erro na requisição POST ${acao}:`, error);
+                return { success: false, message: 'Erro de conexão com o servidor' };
+            }
+        }
+
+        // ===== FUNÇÃO PARA ATUALIZAR STATUS DO MEMBRO NA PLANILHA =====
+        async function atualizarStatusMembroAPI(numeroMembro, status) {
+            try {
+                const resultado = await fazerRequisicaoPOST('updateMemberStatus', {
+                    numeroMembro: numeroMembro,
+                    status: status
+                });
+
+                return resultado;
+            } catch (error) {
+                console.error('Erro ao atualizar status do membro:', error);
                 return { success: false, message: 'Erro de conexão com o servidor' };
             }
         }
@@ -3323,7 +3794,7 @@
                 .reduce((total, t) => total + parseFloat(t.valor || 0), 0);
 
             const saldoAtual = receitasMes - despesasMes;
-            const saldoPrevisto = saldoAtual + 164750;
+            const saldoPrevisto = saldoAtual + 0;
 
             document.getElementById('saldo-atual').textContent = formatarValor(saldoAtual);
             document.getElementById('receitas-mes').textContent = formatarValor(receitasMes);
@@ -5121,9 +5592,26 @@
         }
 
         // Chamar na inicialização
-        document.addEventListener('DOMContentLoaded', function () {
-            preCarregarLogotipo();
-        });
+        // ===== INICIALIZAÇÃO =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Sistema iniciando...');
+    
+    // Configurar eventos de login primeiro
+    configurarEventosLogin();
+    
+    // Verificar se já existe sessão ativa
+    if (verificarSessaoAtiva()) {
+        console.log('✅ Sessão válida encontrada, inicializando sistema...');
+        isAuthenticated = true;
+        esconderModalLogin();
+        inicializarSistemaCompleto(); // ← TUDO inicializado aqui
+    } else {
+        console.log('🔒 Exigindo autenticação...');
+        mostrarModalLogin();
+    }
+
+    preCarregarLogotipo();
+       });
 
         // ===== FUNÇÃO PRINCIPAL DE IMPRESSÃO DE FACTURA CORRIGIDA =====
         function imprimirFactura(id) {
@@ -5837,6 +6325,8 @@
 
         async function sincronizarComSheets() {
             try {
+                mostrarLoading('Sincronizando com a planilha...');
+
                 const timestamp = new Date().getTime();
                 const response = await fetch(`${SCRIPT_URL}?action=getMembers&t=${timestamp}`);
 
@@ -5845,7 +6335,7 @@
                 }
 
                 const result = await response.json();
-                console.log('Dados recebidos:', result);
+                console.log('Dados recebidos da planilha:', result);
 
                 if (result.success && result.members) {
                     membros = result.members.map((membro, index) => {
@@ -5874,16 +6364,23 @@
                     });
 
                     localStorage.setItem('membros', JSON.stringify(membros));
-                    console.log(`${membros.length} membros carregados`);
+                    console.log(`${membros.length} membros sincronizados com a planilha`);
 
                     carregarCategoriasFiltro();
                     carregarTabelaMembros();
+
+                    mostrarSucesso('Dados sincronizados com sucesso!');
                 } else {
-                    console.warn('Nenhum membro encontrado');
+                    console.warn('Nenhum membro encontrado na planilha');
+                    mostrarInfo('Nenhum dado novo encontrado na planilha');
                 }
             } catch (error) {
                 console.error('Erro na sincronização:', error);
+                mostrarErro('Erro ao sincronizar com a planilha: ' + error.message);
+                // Carregar dados do localStorage como fallback
                 carregarTabelaMembros();
+            } finally {
+                esconderLoading();
             }
         }
 
@@ -5967,59 +6464,90 @@
                 const statusAntigo = membro.status; // Guardar o status antigo
                 membro.status = status;
 
+                // Atualizar no localStorage
+                localStorage.setItem('membros', JSON.stringify(membros));
+
+                // ATUALIZAR NA PLANILHA DO GOOGLE SHEETS
+                try {
+                    mostrarLoading('Atualizando status na planilha...');
+
+                    // Enviar atualização para o GAS
+                    const resultado = await atualizarStatusMembroAPI(membro.numeroMembro, status);
+
+                    if (resultado.success) {
+                        mostrarSucesso('Membro atualizado com sucesso na planilha!');
+                    } else {
+                        mostrarErro('Erro ao atualizar na planilha: ' + resultado.message);
+                        // Mesmo com erro, continuamos para atualizar a interface local
+                    }
+                } catch (error) {
+                    console.error('Erro ao atualizar planilha:', error);
+                    mostrarErro('Erro ao atualizar na planilha, mas alteração local foi salva.');
+                } finally {
+                    esconderLoading();
+                }
+
                 // Adicionar notificação para mudança de status
                 if (statusAntigo !== status) {
                     adicionarNotificacao(
                         'Status do Membro Alterado',
-                        `${membro.nome} mudou para ${status}`,
+                        `${membro.nome} mudou de "${statusAntigo}" para "${status}"`,
                         status === 'Regular' ? 'sucesso' :
                             status === 'Dívida' ? 'erro' : 'alerta'
                     );
                 }
 
-                localStorage.setItem('membros', JSON.stringify(membros));
                 carregarTabelaMembros();
                 fecharModalMembro();
-                alert('Membro atualizado com sucesso!');
             }
         }
 
         async function marcarPagamento() {
-            const id = document.getElementById('membro-id').value;
-            const membro = membros.find(m => m.id == id);
+    const id = document.getElementById('membro-id').value;
+    const membro = membros.find(m => m.id == id);
 
-            if (membro) {
-                const hoje = new Date().toISOString().split('T')[0];
-                membro.ultimoPagamento = hoje;
-                membro.status = 'Regular';
+    if (membro) {
+        // Guardar status anterior
+        const statusAnterior = membro.status;
+        
+        // Mudar status para "Regular"
+        membro.status = 'Regular';
+        membro.ultimoPagamento = new Date().toISOString().split('T')[0];
 
-                try {
-                    const response = await fetch(SCRIPT_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `action=updateMember&memberData=${JSON.stringify({
-                            numeroMembro: membro.numeroMembro,
-                            ultimoPagamento: membro.ultimoPagamento,
-                            status: membro.status
-                        })}`
-                    });
-
-                    const result = await response.json();
-                    if (!result.success) {
-                        console.error('Erro ao atualizar:', result.message);
-                    }
-                } catch (error) {
-                    console.error('Erro na atualização:', error);
-                }
-
+        try {
+            mostrarLoading('Registrando pagamento...');
+            
+            // USAR A MESMA API DO BOTÃO "SALVAR"
+            const resultado = await atualizarStatusMembroAPI(membro.numeroMembro, membro.status);
+            
+            if (resultado.success) {
+                // Atualizar localStorage
                 localStorage.setItem('membros', JSON.stringify(membros));
+                
+                // Atualizar tabela
                 carregarTabelaMembros();
+                
+                // Fechar modal
                 fecharModalMembro();
-                alert('Pagamento registrado com sucesso!');
+                
+                // Mostrar mensagem de sucesso
+                mostrarSucesso('Pagamento registrado com sucesso! Status alterado para Regular.');
+            } else {
+                // Reverter se falhar
+                membro.status = statusAnterior;
+                delete membro.ultimoPagamento;
+                mostrarErro('Erro ao registrar pagamento na planilha');
             }
+        } catch (error) {
+            // Reverter se falhar
+            membro.status = statusAnterior;
+            delete membro.ultimoPagamento;
+            mostrarErro('Erro ao registrar pagamento');
+        } finally {
+            esconderLoading();
         }
+    }
+}
 
         function verMembro(id) {
             const membro = membros.find(m => m.id === id);
