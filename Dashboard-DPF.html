@@ -2428,43 +2428,73 @@ function esconderModalLogin() {
 }
 
 async function validarSenha(senha) {
-    return new Promise((resolve, reject) => {
+    try {
         mostrarLoading('Validando senha...');
         
+        // Enviar como texto simples, não como JSON puro
+        const dados = {
+            action: 'validateDashboardPassword',
+            password: senha,
+            department: 'DPF'
+        };
+        
+        // Formato especial para GAS - texto plano que parece JSON
         const xhr = new XMLHttpRequest();
         xhr.open('POST', AUTH_GAS_URL);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
         
-        xhr.onload = function() {
-            esconderLoading();
-            if (xhr.status === 200) {
-                try {
-                    const resultado = JSON.parse(xhr.responseText);
-                    console.log('🔑 Resposta da autenticação:', resultado);
-                    resolve(resultado);
-                } catch (e) {
-                    console.error('Erro ao analisar JSON:', e);
-                    reject({ success: false, valid: false, message: 'Resposta inválida do servidor' });
+        // Importante: enviar como texto simples
+        xhr.setRequestHeader('Content-Type', 'text/plain; charset=UTF-8');
+        
+        return new Promise((resolve, reject) => {
+            xhr.onload = function() {
+                esconderLoading();
+                if (xhr.status === 200) {
+                    try {
+                        const resultado = JSON.parse(xhr.responseText);
+                        console.log('🔑 Resposta da autenticação:', resultado);
+                        resolve(resultado);
+                    } catch (e) {
+                        console.error('Erro ao analisar JSON:', e);
+                        reject({ 
+                            success: false, 
+                            valid: false, 
+                            message: 'Resposta inválida do servidor' 
+                        });
+                    }
+                } else {
+                    reject({ 
+                        success: false, 
+                        valid: false, 
+                        message: 'Erro HTTP ' + xhr.status 
+                    });
                 }
-            } else {
-                reject({ success: false, valid: false, message: 'Erro HTTP ' + xhr.status });
-            }
-        };
+            };
+            
+            xhr.onerror = function() {
+                esconderLoading();
+                console.error('Erro de rede no XHR');
+                reject({ 
+                    success: false, 
+                    valid: false, 
+                    message: 'Erro de conexão com o servidor' 
+                });
+            };
+            
+            // Enviar como string JSON (não como URLSearchParams)
+            xhr.send(JSON.stringify(dados));
+        });
         
-        xhr.onerror = function() {
-            esconderLoading();
-            console.error('Erro de rede no XHR');
-            reject({ success: false, valid: false, message: 'Erro de conexão com o servidor' });
+    } catch (error) {
+        esconderLoading();
+        console.error('❌ Erro na autenticação:', error);
+        return {
+            success: false,
+            valid: false,
+            message: 'Erro ao processar requisição'
         };
-        
-        const params = new URLSearchParams();
-        params.append('action', 'validateDashboardPassword');
-        params.append('password', senha);
-        params.append('department', 'DPF');
-        xhr.send(params);
-    });
+    }
 }
-
+		
 function mostrarErroLogin(mensagem) {
     const errorElement = document.getElementById('login-error-message');
     const errorText = document.getElementById('login-error-text');
@@ -8120,3 +8150,4 @@ document.addEventListener('DOMContentLoaded', function() {
     </script>
 </body>
 </html>
+
