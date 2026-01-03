@@ -2263,8 +2263,8 @@ body.login-active .main-content {
     <script>
         // ===== CONFIGURAÇÃO DO BACKEND =====
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbxN3yGz_oTMzxB-6_PvQtsZQmYftTltqWwWg9lEx_XHacpUnZx_tKzEEVrfrTzsKRlWwQ/exec';
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw4NklQ1lF4Uq8yqPm35qeJ7kjE1c1E7YLVfMEa-h3WjsGOT0Gi5KtHz8PoDy1-Mo4/exec';
-        const MEMBROS_GAS_URL = 'https://script.google.com/macros/s/AKfycbw4NklQ1lF4Uq8yqPm35qeJ7kjE1c1E7YLVfMEa-h3WjsGOT0Gi5KtHz8PoDy1-Mo4/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuwsZg74EXSULpDB8it-EgpmzMSqq8g84nQYMcAVPNfHIRMF5IrKM-AXH2kZpEDjk/exec';
+        const MEMBROS_GAS_URL = 'https://script.google.com/macros/s/AKfycbxuwsZg74EXSULpDB8it-EgpmzMSqq8g84nQYMcAVPNfHIRMF5IrKM-AXH2kZpEDjk/exec';
 	const AUTH_GAS_URL = 'https://script.google.com/macros/s/AKfycbzhCq6YKeV7li8sJHHcLTeDbaGpAJsFjEoAS_yE3aOuqZWW6p-T2emWo_Rdgkez6AsF/exec';
 	
         let carregandoDados = false;
@@ -3217,13 +3217,19 @@ function inicializarSistemaCompleto() {
         }
 
         // ===== FUNÇÃO PARA ATUALIZAR STATUS DO MEMBRO NA PLANILHA =====
-        async function atualizarStatusMembroAPI(numeroMembro, status) {
+        async function atualizarStatusMembroAPI(numeroMembro, status, ultimoPagamento = null) {
             try {
-                const resultado = await fazerRequisicaoPOST('updateMemberStatus', {
+                const dados = {
                     numeroMembro: numeroMembro,
                     status: status
-                });
+                };
 
+                // Adicionar data do último pagamento se fornecida
+                if (ultimoPagamento) {
+                    dados.ultimoPagamento = ultimoPagamento;
+                }
+
+                const resultado = await fazerRequisicaoPOST('updateMemberStatus', dados);
                 return resultado;
             } catch (error) {
                 console.error('Erro ao atualizar status do membro:', error);
@@ -6369,7 +6375,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 mostrarLoading('Sincronizando com a planilha...');
 
                 const timestamp = new Date().getTime();
-                const response = await fetch(`${SCRIPT_URL}?action=getMembers&t=${timestamp}`);
+                const response = await fetch(`${MEMBROS_GAS_URL}?action=getMembers&t=${timestamp}`);
 
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
@@ -6378,11 +6384,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 const result = await response.json();
                 console.log('Dados recebidos da planilha:', result);
 
+                // 🔥 ADICIONE ESTE DEBUG CRÍTICO:
+                console.log('🔍 RESPOSTA COMPLETA DO GAS (primeiros 5000 caracteres):',
+                    JSON.stringify(result).substring(0, 5000));
+
+                if (result.success && result.members && result.members.length > 0) {
+                    console.log('📋 TODAS AS CHAVES do primeiro membro:', Object.keys(result.members[0]));
+                    console.log('📊 VALORES do primeiro membro:', result.members[0]);
+
+                    // Verifique se a chave 'Último Pagamento' existe (com acento)
+                    const primeiroMembro = result.members[0];
+                    for (let key in primeiroMembro) {
+                        console.log(`Key: "${key}" = "${primeiroMembro[key]}"`);
+                    }
+                }
+
                 if (result.success && result.members) {
+                    // 🔥 ADICIONE ESTA LINHA (1)
+                    if (result.members.length > 0) {
+                        console.log('🔥 Dados brutos do primeiro membro do GAS:', result.members[0]);
+                    }
+
                     membros = result.members.map((membro, index) => {
                         let status = membro.status || 'Regular';
-                        if (status === 'Dvida') {
+                        if (status === 'Dvida' || status === 'Dívida') {
                             status = 'Dívida';
+                        }
+
+                        // 🔥 ADICIONE ESTAS LINHAS (2)
+                        if (index < 3) {
+                            console.log(`🔥 Membro ${index + 1}:`, {
+                                nome: membro.nome,
+                                ultimoPagamentoDoGAS: membro.ultimoPagamento,
+                                tipo: typeof membro.ultimoPagamento
+                            });
                         }
 
                         return {
@@ -6392,7 +6427,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             dataAdmissao: membro.dataAdmissao || '',
                             numeroMembro: membro.numeroMembro || '',
                             status: status,
-                            ultimoPagamento: membro.ultimoPagamento || '',
+                            ultimoPagamento: membro.ultimoPagamento || '', // ✅ Este campo
                             bi: membro.bi || '',
                             telefone: membro.telefone || '',
                             email: membro.email || '',
@@ -6407,18 +6442,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     localStorage.setItem('membros', JSON.stringify(membros));
                     console.log(`${membros.length} membros sincronizados com a planilha`);
 
+                    // Debug: verifique o primeiro membro
+                    if (membros.length > 0) {
+                        console.log('Primeiro membro - último pagamento:', membros[0].ultimoPagamento);
+                    }
+
                     carregarCategoriasFiltro();
                     carregarTabelaMembros();
 
                     mostrarSucesso('Dados sincronizados com sucesso!');
                 } else {
-                    console.warn('Nenhum membro encontrado na planilha');
+                    console.warn('Nenhum membro encontrado na planilha ou erro na resposta');
                     mostrarInfo('Nenhum dado novo encontrado na planilha');
                 }
             } catch (error) {
                 console.error('Erro na sincronização:', error);
                 mostrarErro('Erro ao sincronizar com a planilha: ' + error.message);
-                // Carregar dados do localStorage como fallback
                 carregarTabelaMembros();
             } finally {
                 esconderLoading();
@@ -6481,10 +6520,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (membro.status === 'Dívida') {
                     document.getElementById('btn-em-divida').style.display = 'inline-block';
-                    document.getElementById('info-pagamento').innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Este membro está em dívida';
+                    document.getElementById('info-pagamento').innerHTML =
+                        `<i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Este membro está em dívida<br>
+                 <small>Último pagamento: ${formatarData(membro.ultimoPagamento) || 'Não registrado'}</small>`;
                 } else {
                     document.getElementById('btn-em-divida').style.display = 'none';
-                    document.getElementById('info-pagamento').innerHTML = '<i class="fas fa-check" style="color: var(--success);"></i> Pagamento em dia';
+                    document.getElementById('info-pagamento').innerHTML =
+                        `<i class="fas fa-check" style="color: var(--success);"></i> Pagamento em dia<br>
+                 <small>Último pagamento: ${formatarData(membro.ultimoPagamento) || 'Não registrado'}</small>`;
                 }
 
                 document.getElementById('modal-membro').style.display = 'flex';
@@ -6502,24 +6545,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const membro = membros.find(m => m.id == id);
             if (membro) {
-                const statusAntigo = membro.status; // Guardar o status antigo
+                const statusAntigo = membro.status;
                 membro.status = status;
+
+                // Se o status mudou para "Regular", atualizar data do último pagamento
+                let ultimoPagamento = null;
+                if (status === 'Regular' && statusAntigo !== 'Regular') {
+                    ultimoPagamento = new Date().toISOString().split('T')[0];
+                    membro.ultimoPagamento = ultimoPagamento;
+                }
 
                 // Atualizar no localStorage
                 localStorage.setItem('membros', JSON.stringify(membros));
 
                 // ATUALIZAR NA PLANILHA DO GOOGLE SHEETS
                 try {
-                    mostrarLoading('Atualizando status na planilha...');
+                    mostrarLoading('Atualizando dados do membro...');
 
                     // Enviar atualização para o GAS
-                    const resultado = await atualizarStatusMembroAPI(membro.numeroMembro, status);
+                    const resultado = await atualizarStatusMembroAPI(
+                        membro.numeroMembro,
+                        status,
+                        ultimoPagamento
+                    );
 
                     if (resultado.success) {
                         mostrarSucesso('Membro atualizado com sucesso na planilha!');
                     } else {
                         mostrarErro('Erro ao atualizar na planilha: ' + resultado.message);
-                        // Mesmo com erro, continuamos para atualizar a interface local
                     }
                 } catch (error) {
                     console.error('Erro ao atualizar planilha:', error);
@@ -6544,116 +6597,134 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         async function marcarPagamento() {
-    const id = document.getElementById('membro-id').value;
-    const membro = membros.find(m => m.id == id);
+            const id = document.getElementById('membro-id').value;
+            const membro = membros.find(m => m.id == id);
 
-    if (membro) {
-        // Guardar status anterior
-        const statusAnterior = membro.status;
-        
-        // Mudar status para "Regular"
-        membro.status = 'Regular';
-        membro.ultimoPagamento = new Date().toISOString().split('T')[0];
+            if (membro) {
+                // Guardar status anterior
+                const statusAnterior = membro.status;
 
-        try {
-            mostrarLoading('Registrando pagamento...');
-            
-            // USAR A MESMA API DO BOTÃO "SALVAR"
-            const resultado = await atualizarStatusMembroAPI(membro.numeroMembro, membro.status);
-            
-            if (resultado.success) {
-                // Atualizar localStorage
-                localStorage.setItem('membros', JSON.stringify(membros));
-                
-                // Atualizar tabela
-                carregarTabelaMembros();
-                
-                // Fechar modal
-                fecharModalMembro();
-                
-                // Mostrar mensagem de sucesso
-                mostrarSucesso('Pagamento registrado com sucesso! Status alterado para Regular.');
-            } else {
-                // Reverter se falhar
-                membro.status = statusAnterior;
-                delete membro.ultimoPagamento;
-                mostrarErro('Erro ao registrar pagamento na planilha');
+                // Mudar status para "Regular"
+                membro.status = 'Regular';
+                const dataPagamento = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+                membro.ultimoPagamento = dataPagamento;
+
+                try {
+                    mostrarLoading('Registrando pagamento...');
+
+                    // ATUALIZADO: Enviar também a data do último pagamento
+                    const resultado = await atualizarStatusMembroAPI(
+                        membro.numeroMembro,
+                        membro.status,
+                        dataPagamento // Data do pagamento
+                    );
+
+                    if (resultado.success) {
+                        // Atualizar localStorage
+                        localStorage.setItem('membros', JSON.stringify(membros));
+
+                        // Atualizar tabela
+                        carregarTabelaMembros();
+
+                        // Fechar modal
+                        fecharModalMembro();
+
+                        // Mostrar mensagem de sucesso
+                        mostrarSucesso('Pagamento registrado com sucesso! Status alterado para Regular.');
+
+                        // Atualizar notificação
+                        adicionarNotificacao(
+                            'Pagamento Registrado',
+                            `${membro.nome} - Último pagamento: ${formatarData(dataPagamento)}`,
+                            'sucesso'
+                        );
+                    } else {
+                        // Reverter se falhar
+                        membro.status = statusAnterior;
+                        delete membro.ultimoPagamento;
+                        mostrarErro('Erro ao registrar pagamento na planilha');
+                    }
+                } catch (error) {
+                    // Reverter se falhar
+                    membro.status = statusAnterior;
+                    delete membro.ultimoPagamento;
+                    mostrarErro('Erro ao registrar pagamento');
+                } finally {
+                    esconderLoading();
+                }
             }
-        } catch (error) {
-            // Reverter se falhar
-            membro.status = statusAnterior;
-            delete membro.ultimoPagamento;
-            mostrarErro('Erro ao registrar pagamento');
-        } finally {
-            esconderLoading();
         }
-    }
-}
 
         function verMembro(id) {
             const membro = membros.find(m => m.id === id);
             if (membro) {
+                // 🔥 ADICIONE ESTE DEBUG
+                console.log(`🔍 Dados do membro ${id}:`, {
+                    nome: membro.nome,
+                    ultimoPagamentoNoArray: membro.ultimoPagamento,
+                    todosCampos: membro
+                });
                 const modalCorpo = document.getElementById('modal-ver-corpo');
                 modalCorpo.innerHTML = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div class="form-group">
-                            <label><strong>Nome Completo</strong></label>
-                            <div>${membro.nome || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Número de Membro</strong></label>
-                            <div>${membro.numeroMembro || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Categoria</strong></label>
-                            <div>${membro.categoria || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Status</strong></label>
-                            <div><span class="status ${membro.status.toLowerCase().replace('í', 'i').replace(' ', '-')}">${membro.status}</span></div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Data de Admissão</strong></label>
-                            <div>${formatarData(membro.dataAdmissao) || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>BI/Passaporte</strong></label>
-                            <div>${membro.bi || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Telefone</strong></label>
-                            <div>${membro.telefone || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>E-mail</strong></label>
-                            <div>${membro.email || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Empresa/Instituição</strong></label>
-                            <div>${membro.empresa || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Cargo/Função</strong></label>
-                            <div>${membro.cargo || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Endereço</strong></label>
-                            <div>${membro.endereco || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Data de Nascimento</strong></label>
-                            <div>${formatarData(membro.dataNascimento) || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Nacionalidade</strong></label>
-                            <div>${membro.nacionalidade || 'Não informado'}</div>
-                        </div>
-                        <div class="form-group">
-                            <label><strong>Último Pagamento</strong></label>
-                            <div>${formatarData(membro.ultimoPagamento) || 'Não registrado'}</div>
-                        </div>
-                    </div>
-                `;
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label><strong>Nome Completo</strong></label>
+                    <div>${membro.nome || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Número de Membro</strong></label>
+                    <div>${membro.numeroMembro || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Categoria</strong></label>
+                    <div>${membro.categoria || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Status</strong></label>
+                    <div><span class="status ${membro.status.toLowerCase().replace('í', 'i').replace(' ', '-')}">${membro.status}</span></div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Data de Admissão</strong></label>
+                    <div>${formatarData(membro.dataAdmissao) || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Último Pagamento</strong></label>
+                    <div>${formatarData(membro.ultimoPagamento) || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>BI/Passaporte</strong></label>
+                    <div>${membro.bi || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Telefone</strong></label>
+                    <div>${membro.telefone || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>E-mail</strong></label>
+                    <div>${membro.email || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Empresa/Instituição</strong></label>
+                    <div>${membro.empresa || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Cargo/Função</strong></label>
+                    <div>${membro.cargo || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Endereço</strong></label>
+                    <div>${membro.endereco || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Data de Nascimento</strong></label>
+                    <div>${formatarData(membro.dataNascimento) || 'Não informado'}</div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Nacionalidade</strong></label>
+                    <div>${membro.nacionalidade || 'Não informado'}</div>
+                </div>
+            </div>
+        `;
 
                 document.getElementById('modal-ver-membro').style.display = 'flex';
             }
